@@ -26,10 +26,10 @@ def main():
     surface = p.display.set_mode((WIDTH, HEIGHT))
     clock = p.time.Clock()
     surface.fill(p.Color("white"))
-    mixer.init() #Inicjalizacja miksera w celu puszczania efektów dźwiękowych
     gs = StateOfTheGame() #Aktualny stan szachownicy 
     valid_moves = gs.get_valid_moves()
     move_made = False #Wartość po wykonaniu ruchu 
+    mixer.init() #Inicjalizacja miksera w celu puszczania efektów dźwiękowych
     load_images() #Funkcja wywyołana jednorazowo w celu załadowania obrazów
     running = True
     sq_selected = () #Monitorowanie kwadratu, w który kliknie użytkownik
@@ -43,9 +43,9 @@ def main():
             keys = p.key.get_pressed()
             if keys[p.K_BACKSPACE]: #Cofnięcie ruchu po kliknięciu backspace
                 gs.undo_move() 
-                move_made = False 
+                move_made = True
             elif e.type == p.MOUSEBUTTONDOWN: #Sprawdzenie, na który kwadrat kliknął użytkownik
-                location = p.mouse.get_pos()
+                location = p.mouse.get_pos() 
                 column = location[0] // SQ_SIZE
                 row = location[1] // SQ_SIZE
                 if sq_selected == (row, column): #Gdy użytkownik kliknie dwa razy na ten sam kwadrat
@@ -59,13 +59,14 @@ def main():
                     print(move.get_chess_notation())
                     if move in valid_moves: #Sprawdzenie czy ruch jest poprawny
                         gs.make_move(move)
-                        play_sound_effect("Move_sound")
                         move_made = True 
-                    sq_selected = () #Zresetowanie kliknięcia użytkownika
-                    player_clicks = []
+                        sq_selected = () #Zresetowanie kliknięcia użytkownika
+                        player_clicks = []
+                    else:
+                        player_clicks = [sq_selected]
 
         if move_made:
-            valid_moves = gs.get_valid_moves
+            valid_moves = gs.get_valid_moves()
             move_made = False
 
         draw_game_state(surface, gs)
