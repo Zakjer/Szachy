@@ -18,3 +18,12 @@ Aby rozpocząć grę, urochom plik main.py przy użyciu Pythona. Gdy program si�
 **Pictures**: Folder ten zawiera zdjęcia wszystkich figur zapisane w formacie .png.
 
 **Sound_effects**: Folder ten zawiera efekty dźwiękowe, które są słyszane podczas konkretnych sytuacji podczas gry.
+
+# Rzeczy do zrobienia
+- dodanie dźwiękow go gry
+- dodanie ruchów "specjalnych" (roszada, bicie w przelocie)
+- dodanie funkcji szachowania, matowania oraz stworzenie funckji odpowiedzialnej za pata (remis)
+- dodanie podświetlania na szachownicy możliwych ruchów do wykonania
+- zoptymalizowanie funkcji odpowiedzialnych za ruchy wieży, gońca oraz hetmana
+
+https://github.com/Zakjer/Szachy
