@@ -20,6 +20,9 @@ class StateOfTheGame:
         self.move_log = []
         self.white_king_location = (7, 4)
         self.black_king_location = (0, 4) 
+        self.check_mate = False
+        self.stale_mate = False 
+        self.en_passant_possible = () #Współrzędne kwadratu gdzie bicie w przelocie jest dozwolone 
     
     def make_move(self, move):
         """
@@ -34,7 +37,20 @@ class StateOfTheGame:
             self.white_king_location = (move.end_row, move.end_column)
         elif move.piece_moved == "bK": 
             self.black_king_location = (move.end_row, move.end_column)
-    
+
+        if move.is_pawn_promotion:
+            self.board[move.end_row][move.end_column] = move.piece_moved[0] + "Q"
+
+        if move.is_en_passant_move:
+            self.board[move.start_row][move.end_column] = "--"
+
+        #Jeżeli pion poruszy się o dwa pola możemy go zbić w przelocie
+        if move.piece_moved[1] == "p" and abs(move.start_row - move.end_row) == 2: 
+            self.en_passant_possible = ((move.start_row + move.end_row)//2, move.start_column)
+        else:
+            self.en_passant_possible = ()
+
+
     def undo_move(self):
         """Funkcja cofająca ruch"""
         if len(self.move_log) != 0: #Sprawdzenie czy w parti został wykonany jakikolwiek ruch
@@ -46,20 +62,60 @@ class StateOfTheGame:
                 self.white_king_location = (move.start_row, move.start_column)
             elif move.piece_moved == "bK": 
                 self.black_king_location = (move.start_row, move.start_column)
-    
+
+            if move.is_en_passant_move:
+                self.board[move.end_row][move.end_column] == "--"
+                self.board[move.start_row][move.end_column] = move.piece_captured
+                self.en_passant_possible = (move.end_row, move.end_column)
+            if move.piece_moved[1] == "p" and abs(move.start_row - move.end_row) == 2:
+                self.en_passant_possible = ()
+
     def get_valid_moves(self):
         """Wszystkie możliwe ruchy uwzględniające atak na króla(szach)"""
+        temp_en_passant_possible = self.en_passant_possible
         #1) Wygenerowanie wszystkich możliwych ruchów
         moves = self.get_all_possible_moves()
         #2) Dla każdego ruchu, wykonaj go
-        
+        for i in range(len(moves)-1, -1, -1):
+            self.make_move(moves[i])
         #3) Wygenerowanie wszystkich możliwych ruchów przeciwnika
         #4) Sprawdzenie dla każdego ruchu przeciwnika czy zaatakował twojego króla
-        #5) Jeżeli zaatakują twojego króla, twój ruch jest błędny
-        return moves
+            self.white_to_move = not self.white_to_move
+            if self.in_check():
+                moves.remove(moves[i]) #5) Jeżeli zaatakują twojego króla, twój ruch jest niedozwolony
+            self.white_to_move = not self.white_to_move
+            self.undo_move()
+        if len(moves) == 0: #Gdy gracz nie może wykonać żadnego ruchu
+            if self.in_check():
+                self.check_mate = True #Gdy król jest szachowany następuje mat
+            else:
+                self.stale_mate = True #Gdy król nie jest szachowany następuje pat
+        else:
+            self.check_mate = False
+            self.stale_mate = False 
 
+        self.en_passant_possible = temp_en_passant_possible
+        return moves
+            
+    def in_check(self):
+        """Funkcja sprawdzająca czy w danej sytuacji król jest szachowany"""
+        if self.white_to_move:
+            return self.square_under_attack(self.white_king_location[0], self.white_king_location[1])
+        else:
+            return self.square_under_attack(self.black_king_location[0], self.black_king_location[1])
+
+    def square_under_attack(self, row, column):
+        """Sprawdzenie czy figura przeciwnika atakuje dane pole"""
+        self.white_to_move = not self.white_to_move #Zmiana na kolej ruchu przeciwnika
+        opponent_moves = self.get_all_possible_moves()
+        self.white_to_move = not self.white_to_move #Zmiana na kolej ruchu gracza 
+        for move in opponent_moves:
+            if move.end_row == row and move.end_column == column: #Pole jest atakowane
+                return True 
+        return False 
+        
     def get_all_possible_moves(self):
-        """Wszystkie możliwe ruchy nie uwzględniające ataku na króla(szach)"""
+        """Wszystkie możliwe ruchy nieuwzględniające ataku na króla(szach)"""
         moves = []
         for row in range(len(self.board)): #Ilość rzędów
             for column in range(len(self.board[row])): #Ilość kolumn w danym rzędzie
@@ -93,9 +149,14 @@ class StateOfTheGame:
             if column - 1 >= 0: #Bicie w lewo
                 if self.board[row-1][column-1][0] == "b": #Sprawdzenie czy stoi tam figura przeciwnika
                     moves.append(Move((row, column), (row-1,column-1), self.board))
+                elif (row-1, column-1) == self.en_passant_possible: #Umożliwienia wykonania bicia w przelocie
+                    moves.append(Move((row, column), (row-1,column-1), self.board, is_en_passant_move = True))
+
             if column + 1 <= 7: #Bicie w prawo
                 if self.board[row-1][column+1][0] == "b":
                     moves.append(Move((row, column), (row-1,column+1), self.board))
+                elif (row-1, column+1) == self.en_passant_possible:
+                    moves.append(Move((row, column), (row-1,column+1), self.board, is_en_passant_move = True))
 
         else: #Ruchy czarnych pionów
             if self.board[row+1][column] == "--":
@@ -105,9 +166,13 @@ class StateOfTheGame:
             if column - 1 >= 0:
                 if self.board[row+1][column-1][0] == "w":
                     moves.append(Move((row, column), (row+1, column-1), self.board))
+                elif (row+1, column-1) == self.en_passant_possible:
+                    moves.append(Move((row, column), (row+1,column-1), self.board, is_en_passant_move = True))
             if column + 1 <= 7:
                 if self.board[row+1][column+1][0] == "w":
                     moves.append(Move((row, column), (row+1, column+1), self.board))
+                elif (row+1, column+1) == self.en_passant_possible:
+                    moves.append(Move((row, column), (row+1,column+1), self.board, is_en_passant_move = True))
 
     def get_rook_moves(self, row, column, moves):
         """
@@ -256,19 +321,25 @@ class Move:
     ranks_to_rows = {"1": 7, "2": 6, "3": 5, "4": 4,
                     "5": 3, "6": 2, "7": 1, "8": 0}
     rows_to_ranks = {v: k for k, v in ranks_to_rows.items()} #Zamiana współrzędnych listy na współrzędne
-    files_to_columns = {"a":0, "b":1, "c":2, "d":3, #szachowe np. ([0,3] = a5)
-                    "e":4, "f":5, "g":6, "h":7} 
+    files_to_columns = {"a": 0, "b": 1, "c": 2, "d": 3, #szachowe np. ([0,3] = a5)
+                    "e": 4, "f": 5, "g": 6, "h": 7} 
     columns_to_files = {v: k for k, v in files_to_columns.items()}
 
-    def __init__(self, start_sq, end_sq, board):
+    def __init__(self, start_sq, end_sq, board, is_en_passant_move = False):
         self.start_row = start_sq[0] #Współrzędne pola, z którego figura się rusza
         self.start_column = start_sq[1]
         self.end_row = end_sq[0] #Współrzędne pola, na które figura się rusza
         self.end_column = end_sq[1]
         self.piece_moved = board[self.start_row][self.start_column]
         self.piece_captured = board[self.end_row][self.end_column] #Przechowywanie zdobytych figur
+        self.is_pawn_promotion = False 
+        if (self.piece_moved == "wp" and self.end_row == 0) or (self.piece_moved == "bp" and self.end_row == 7):
+            self.is_pawn_promotion = True #Sprawdzenie czy pion dotarł do ostatniego rzędu
         self.move_id = (self.start_row * 1000 + self.start_column * 100 + 
                         self.end_row * 10 + self.end_column) #Przypisanie ruchowi unikalnego id 
+        self.is_en_passant_move = is_en_passant_move #Sprawdzenie czy bicie w przelocie jest dozwolone
+        if self.is_en_passant_move:
+            self.piece_captured = "wp" if self.piece_moved == "bp" else "bp"
 
     def __eq__(self, other):
         """Funkcja porównująca ze sobą dwa obiekty"""

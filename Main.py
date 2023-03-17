@@ -57,13 +57,14 @@ def main():
                 if len(player_clicks) == 2: #Sprawdzenie czy użytkownik kliknął drugi raz (wykonał ruch)
                     move = Move(player_clicks[0], player_clicks[1], gs.board)
                     print(move.get_chess_notation())
-                    if move in valid_moves: #Sprawdzenie czy ruch jest poprawny
-                        gs.make_move(move)
-                        move_made = True 
-                        sq_selected = () #Zresetowanie kliknięcia użytkownika
-                        player_clicks = []
-                    else:
-                        player_clicks = [sq_selected]
+                    for i in range(len(valid_moves)):
+                        if move == valid_moves[i]: #Sprawdzenie czy ruch jest poprawny
+                            gs.make_move(valid_moves[i])
+                            move_made = True 
+                            sq_selected = () #Zresetowanie kliknięcia użytkownika
+                            player_clicks = []
+                    if not move_made:
+                        player_clicks = [sq_selected] 
 
         if move_made:
             valid_moves = gs.get_valid_moves()
