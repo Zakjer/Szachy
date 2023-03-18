@@ -25,10 +25,12 @@ def main():
     """Funkcja główna pobiera input od użytkownika oraz na bieżąco aktualizuje wygląd szachownicy"""
     surface = p.display.set_mode((WIDTH, HEIGHT))
     clock = p.time.Clock()
+    p.display.set_caption("Chess")
     surface.fill(p.Color("white"))
     gs = StateOfTheGame() #Aktualny stan szachownicy 
     valid_moves = gs.get_valid_moves()
     move_made = False #Wartość po wykonaniu ruchu 
+    animate = False 
     mixer.init() #Inicjalizacja miksera w celu puszczania efektów dźwiękowych
     load_images() #Funkcja wywyołana jednorazowo w celu załadowania obrazów
     running = True
@@ -44,6 +46,14 @@ def main():
             if keys[p.K_BACKSPACE]: #Cofnięcie ruchu po kliknięciu backspace
                 gs.undo_move() 
                 move_made = True
+                animate = False
+            if keys[p.K_r]: #Resetowanie gry po kliknięciu klawisza r
+                gs = StateOfTheGame()
+                valid_moves = gs.get_valid_moves()
+                sq_selected = ()
+                player_clicks = []
+                move_made = False
+                animate = False 
             elif e.type == p.MOUSEBUTTONDOWN: #Sprawdzenie, na który kwadrat kliknął użytkownik
                 location = p.mouse.get_pos() 
                 column = location[0] // SQ_SIZE
@@ -54,6 +64,7 @@ def main():
                 else:
                     sq_selected = (row, column)
                     player_clicks.append(sq_selected) #Dodanie do listy 1 i 2 kliknięcie użytkownika
+
                 if len(player_clicks) == 2: #Sprawdzenie czy użytkownik kliknął drugi raz (wykonał ruch)
                     move = Move(player_clicks[0], player_clicks[1], gs.board)
                     print(move.get_chess_notation())
@@ -61,26 +72,32 @@ def main():
                         if move == valid_moves[i]: #Sprawdzenie czy ruch jest poprawny
                             gs.make_move(valid_moves[i])
                             move_made = True 
+                            animate = True
                             sq_selected = () #Zresetowanie kliknięcia użytkownika
                             player_clicks = []
                     if not move_made:
                         player_clicks = [sq_selected] 
 
         if move_made:
+            if animate:
+                animate_move(gs.move_log[-1], surface, gs.board, clock)
             valid_moves = gs.get_valid_moves()
             move_made = False
+            animate = False 
 
-        draw_game_state(surface, gs)
+        draw_game_state(surface, gs, valid_moves, sq_selected)
         clock.tick(FPS)
         p.display.flip()
 
-def draw_game_state(surface, gs):
+def draw_game_state(surface, gs, valid_moves, sq_selected):
     """Funkcja odpowiedzialna za wyświetlenie obecnego stanu gry"""
     draw_board(surface)
+    highlight_squares(surface, gs, valid_moves, sq_selected)
     draw_pieces(surface, gs.board)
 
 def draw_board(surface):
     """Funkcja rysująca szachownicę"""
+    global colors
     colors = [p.Color("white"), p.Color("gray")]
     for row in range(DIMENSION):
         for column in range(DIMENSION):
@@ -100,6 +117,47 @@ def play_sound_effect(effect_name):
     sound_effect = p.mixer.Sound(os.path.join("Sound_effects", f"{effect_name}.mp3" ))
     p.mixer.Sound.play(sound_effect)
 
+def highlight_squares(surface, gs, valid_moves, sq_selected):
+    """Funkcja podświetlająca figurę oraz pola, na które może się poruszyć"""
+    if sq_selected != ():
+        row, column = sq_selected
+        #Sprawdzenie czy możemy poruszyć się wybraną figurą
+        if gs.board[row][column][0] == ("w" if gs.white_to_move else "b"):
+            #Podświetlenie wybranej figury
+            s = p.Surface((SQ_SIZE, SQ_SIZE))
+            s.set_alpha(70) #Wartość przezroczystości podświetlanego pola
+            s.fill(p.Color("blue"))
+            surface.blit(s, (column*SQ_SIZE, row*SQ_SIZE))
+            #Podświetlenie pól, na które może się poruszyć
+            s.fill(p.Color("yellow"))
+            for move in valid_moves:
+                if move.start_row == row and move.start_column == column:
+                    surface.blit(s, (move.end_column * SQ_SIZE, move.end_row * SQ_SIZE))
+
+def animate_move(move, surface, board, clock):
+    """Funkcja animująca ruch figury"""
+    global colors 
+    dR = move.end_row - move.start_row
+    dC = move.end_column - move.start_column 
+    frames_per_square = 4 #Ilość klatek ruchu na jednym polu
+    frame_count = (abs(dR) + abs(dC)) * frames_per_square
+    for frame in range(frame_count + 1):
+        row = move.start_row + dR*frame/frame_count
+        column = move.start_column + dC*frame/frame_count
+        draw_board(surface)
+        draw_pieces(surface, board)
+        #Usunięcie figury z położenia końcowego
+        color = colors[(move.end_row + move.end_column) % 2]
+        end_square = p.Rect(move.end_column * SQ_SIZE, move.end_row * SQ_SIZE, SQ_SIZE, SQ_SIZE)
+        p.draw.rect(surface, color, end_square)
+        #Rysowanie zbitej figury
+        if move.piece_captured != "--":
+            surface.blit(IMAGES[move.piece_captured], end_square)
+        #Rysowanie ruszonej figury
+        surface.blit(IMAGES[move.piece_moved], p.Rect(column * SQ_SIZE, row * SQ_SIZE, SQ_SIZE, SQ_SIZE))
+        p.display.flip()
+        clock.tick(60)
+    
 if __name__ == "__main__":
     main()
     

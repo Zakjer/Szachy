@@ -22,7 +22,10 @@ class StateOfTheGame:
         self.black_king_location = (0, 4) 
         self.check_mate = False
         self.stale_mate = False 
-        self.en_passant_possible = () #Współrzędne kwadratu gdzie bicie w przelocie jest dozwolone 
+        self.enpassant_possible = () #Współrzędne kwadratu gdzie bicie w przelocie jest dozwolone 
+        self.current_castling_right = CastleRights(True, True, True, True)
+        self.castle_rights_log = [CastleRights(self.current_castling_right.wks, self.current_castling_right.bks,
+                                               self.current_castling_right.wqs, self.current_castling_right.bqs)]
     
     def make_move(self, move):
         """
@@ -38,19 +41,32 @@ class StateOfTheGame:
         elif move.piece_moved == "bK": 
             self.black_king_location = (move.end_row, move.end_column)
 
+        #Promocja piona
         if move.is_pawn_promotion:
             self.board[move.end_row][move.end_column] = move.piece_moved[0] + "Q"
 
-        if move.is_en_passant_move:
+        #Bicie w przelocie
+        if move.is_enpassant_move:
             self.board[move.start_row][move.end_column] = "--"
-
         #Jeżeli pion poruszy się o dwa pola możemy go zbić w przelocie
-        if move.piece_moved[1] == "p" and abs(move.start_row - move.end_row) == 2: 
-            self.en_passant_possible = ((move.start_row + move.end_row)//2, move.start_column)
+        if move.piece_moved[1] == "p" and abs(move.start_row - move.end_row) == 2:
+            self.enpassant_possible = ((move.start_row + move.end_row) // 2, move.start_column)
         else:
-            self.en_passant_possible = ()
-
-
+            self.enpassant_possible = ()
+        
+        #Roszada
+        if move.is_castle_move:
+            if move.end_column - move.start_column == 2:  #Roszada po stronie króla
+                self.board[move.end_row][move.end_column-1] = self.board[move.end_row][move.end_column+1]  #
+                self.board[move.end_row][move.end_column+1] = '--'  #Usunięcie starej wieży
+            else:  #Roszada po stronie królowej
+                self.board[move.end_row][move.end_column+1] = self.board[move.end_row][move.end_column-2] 
+                self.board[move.end_row][move.end_column-2] = '--' 
+        #Zaktualizuj prawa do wykonania roszady po ruchu króla lub wieży 
+        self.update_castle_rights(move)
+        self.castle_rights_log.append(CastleRights(self.current_castling_right.wks, self.current_castling_right.bks,
+                                               self.current_castling_right.wqs, self.current_castling_right.bqs))
+    
     def undo_move(self):
         """Funkcja cofająca ruch"""
         if len(self.move_log) != 0: #Sprawdzenie czy w parti został wykonany jakikolwiek ruch
@@ -63,18 +79,57 @@ class StateOfTheGame:
             elif move.piece_moved == "bK": 
                 self.black_king_location = (move.start_row, move.start_column)
 
-            if move.is_en_passant_move:
-                self.board[move.end_row][move.end_column] == "--"
+            #Cofnięcie bicia w przelocie
+            if move.is_enpassant_move:
+                self.board[move.end_row][move.end_column] = "--"  
                 self.board[move.start_row][move.end_column] = move.piece_captured
-                self.en_passant_possible = (move.end_row, move.end_column)
-            if move.piece_moved[1] == "p" and abs(move.start_row - move.end_row) == 2:
-                self.en_passant_possible = ()
+
+            #Cofnięcie praw do roszady
+            self.castle_rights_log.pop() #Usunięcie nowych praw do roszady po cofnięciu ruchu
+            new_rights = self.castle_rights_log[-1]
+            self.current_castling_right = CastleRights(new_rights.wks, new_rights.bks, 
+                                                       new_rights.wqs, new_rights.bqs)
+            #Cofnięcie roszady
+            if move.is_castle_move:
+                if move.end_column - move.start_column == 2:  #Po stronie króla
+                    self.board[move.end_row][move.end_column+1] = self.board[move.end_row][move.end_column-1]
+                    self.board[move.end_row][move.end_column-1] = '--'
+                else:  #Po stronie królowej
+                    self.board[move.end_row][move.end_column-2] = self.board[move.end_row][move.end_column+1]
+                    self.board[move.end_row][move.end_column+1] = '--'  
+
+    def update_castle_rights(self, move):
+        """Funkcja aktualizująca prawa do roszady po wykonaniu ruchu"""
+        if move.piece_moved == "wK": #Po ruchu królem gracz traci prawo do wykonania roszady 
+            self.current_castling_right.wks = False
+            self.current_castling_right.wqs = False
+        elif move.piece_moved == "bK":
+            self.current_castling_right.bks = False
+            self.current_castling_right.bqs = False
+        elif move.piece_moved == "wR":
+            if move.start_row == 7:
+                if move.start_column == 0: #Lewa wieża
+                    self.current_castling_right.wqs = False
+                if move.start_column == 7: #Prawa wieża
+                    self.current_castling_right.wks = False
+        elif move.piece_moved == "bR":
+            if move.start_row == 0:
+                if move.start_column == 0: #Lewa wieża
+                    self.current_castling_right.bqs = False
+                if move.start_column == 7: #Prawa wieża
+                    self.current_castling_right.bks = False
 
     def get_valid_moves(self):
         """Wszystkie możliwe ruchy uwzględniające atak na króla(szach)"""
-        temp_en_passant_possible = self.en_passant_possible
+        temp_enpassant_possible = self.enpassant_possible
+        temp_castle_rights = CastleRights(self.current_castling_right.wks, #Skopiowanie aktualnych praw do roszady
+        self.current_castling_right.bks, self.current_castling_right.wqs, self.current_castling_right.bqs)
         #1) Wygenerowanie wszystkich możliwych ruchów
         moves = self.get_all_possible_moves()
+        if self.white_to_move:
+            self.get_castle_moves(self.white_king_location[0], self.white_king_location[1], moves)
+        else:
+            self.get_castle_moves(self.black_king_location[0], self.black_king_location[1], moves)
         #2) Dla każdego ruchu, wykonaj go
         for i in range(len(moves)-1, -1, -1):
             self.make_move(moves[i])
@@ -94,7 +149,8 @@ class StateOfTheGame:
             self.check_mate = False
             self.stale_mate = False 
 
-        self.en_passant_possible = temp_en_passant_possible
+        self.enpassant_possible = temp_enpassant_possible
+        self.current_castling_right = temp_castle_rights
         return moves
             
     def in_check(self):
@@ -149,14 +205,14 @@ class StateOfTheGame:
             if column - 1 >= 0: #Bicie w lewo
                 if self.board[row-1][column-1][0] == "b": #Sprawdzenie czy stoi tam figura przeciwnika
                     moves.append(Move((row, column), (row-1,column-1), self.board))
-                elif (row-1, column-1) == self.en_passant_possible: #Umożliwienia wykonania bicia w przelocie
-                    moves.append(Move((row, column), (row-1,column-1), self.board, is_en_passant_move = True))
+                elif (row-1, column-1) == self.enpassant_possible: #Umożliwienia wykonania bicia w przelocie
+                    moves.append(Move((row, column), (row-1,column-1), self.board, is_enpassant_move = True))
 
             if column + 1 <= 7: #Bicie w prawo
                 if self.board[row-1][column+1][0] == "b":
                     moves.append(Move((row, column), (row-1,column+1), self.board))
-                elif (row-1, column+1) == self.en_passant_possible:
-                    moves.append(Move((row, column), (row-1,column+1), self.board, is_en_passant_move = True))
+                elif (row-1, column+1) == self.enpassant_possible:
+                    moves.append(Move((row, column), (row-1,column+1), self.board, is_enpassant_move = True))
 
         else: #Ruchy czarnych pionów
             if self.board[row+1][column] == "--":
@@ -166,13 +222,13 @@ class StateOfTheGame:
             if column - 1 >= 0:
                 if self.board[row+1][column-1][0] == "w":
                     moves.append(Move((row, column), (row+1, column-1), self.board))
-                elif (row+1, column-1) == self.en_passant_possible:
-                    moves.append(Move((row, column), (row+1,column-1), self.board, is_en_passant_move = True))
+                elif (row+1, column-1) == self.enpassant_possible:
+                    moves.append(Move((row, column), (row+1,column-1), self.board, is_enpassant_move = True))
             if column + 1 <= 7:
                 if self.board[row+1][column+1][0] == "w":
                     moves.append(Move((row, column), (row+1, column+1), self.board))
-                elif (row+1, column+1) == self.en_passant_possible:
-                    moves.append(Move((row, column), (row+1,column+1), self.board, is_en_passant_move = True))
+                elif (row+1, column+1) == self.enpassant_possible:
+                    moves.append(Move((row, column), (row+1,column+1), self.board, is_enpassant_move = True))
 
     def get_rook_moves(self, row, column, moves):
         """
@@ -315,6 +371,39 @@ class StateOfTheGame:
                     self.board[new_row][new_column][0] == enemy_piece_color):
                     moves.append(Move((row, column), (new_row, new_column), self.board))
 
+    def get_castle_moves(self, row, column, moves):
+        """Funkcja dodająca legalne ruchy roszady do listy ruchów króla"""
+        if self.square_under_attack(row, column): #Nie możemy wykonać roszady podczas szachu
+            return  
+        if ((self.white_to_move and self.current_castling_right.wks) or 
+        (not self.white_to_move and self.current_castling_right.bks)):
+            self.get_king_side_castle_moves(row, column, moves)
+        if (self.white_to_move and self.current_castling_right.wqs or 
+        (not self.white_to_move and self.current_castling_right.bqs)):
+            self.get_queen_side_castle_moves(row, column, moves)
+        
+    def get_king_side_castle_moves(self, row, column, moves):
+        """Funkcja odpowiadająca za zwrócenie legalnych ruchów roszady po stronie króla"""
+        if self.board[row][column+1] == "--" and self.board[row][column+2] == "--":
+            if not self.square_under_attack(row, column+1) and not self.square_under_attack(row, column+2):
+                moves.append(Move((row, column),(row,column+2), self.board, is_castle_move = True))
+
+    def get_queen_side_castle_moves(self, row, column, moves): 
+        """Funkcja odpowiadająca za zwrócenie legalnych ruchów roszady po stronie królowej"""
+        if (self.board[row][column-1] == "--" and self.board[row][column-2] == "--" 
+        and self.board[row][column-3] == "--"):
+            if not self.square_under_attack(row, column-1) and not self.square_under_attack(row, column-2):
+                moves.append(Move((row, column),(row,column-2), self.board, is_castle_move = True))
+
+
+class CastleRights():
+    """Klasa odpowiada za sprawdzenie czy roszada jest dozwolonym ruchem"""
+    def __init__(self, wks, bks, wqs, bqs): #wks = white king site, bqs = black queen site itd.
+        self.wks = wks
+        self.bks = bks
+        self.wqs = wqs
+        self.bqs = bqs 
+
 
 class Move:
     """Klasa ta odpowiada za wykonywanie ruchów"""
@@ -325,7 +414,7 @@ class Move:
                     "e": 4, "f": 5, "g": 6, "h": 7} 
     columns_to_files = {v: k for k, v in files_to_columns.items()}
 
-    def __init__(self, start_sq, end_sq, board, is_en_passant_move = False):
+    def __init__(self, start_sq, end_sq, board, is_enpassant_move = False, is_castle_move = False):
         self.start_row = start_sq[0] #Współrzędne pola, z którego figura się rusza
         self.start_column = start_sq[1]
         self.end_row = end_sq[0] #Współrzędne pola, na które figura się rusza
@@ -333,13 +422,20 @@ class Move:
         self.piece_moved = board[self.start_row][self.start_column]
         self.piece_captured = board[self.end_row][self.end_column] #Przechowywanie zdobytych figur
         self.is_pawn_promotion = False 
+
+        #Promocja piona
         if (self.piece_moved == "wp" and self.end_row == 0) or (self.piece_moved == "bp" and self.end_row == 7):
             self.is_pawn_promotion = True #Sprawdzenie czy pion dotarł do ostatniego rzędu
         self.move_id = (self.start_row * 1000 + self.start_column * 100 + 
                         self.end_row * 10 + self.end_column) #Przypisanie ruchowi unikalnego id 
-        self.is_en_passant_move = is_en_passant_move #Sprawdzenie czy bicie w przelocie jest dozwolone
-        if self.is_en_passant_move:
+        
+        #Bicie w przelocie
+        self.is_enpassant_move = is_enpassant_move #Sprawdzenie czy bicie w przelocie jest dozwolone
+        if self.is_enpassant_move:
             self.piece_captured = "wp" if self.piece_moved == "bp" else "bp"
+
+        #Roszada
+        self.is_castle_move = is_castle_move
 
     def __eq__(self, other):
         """Funkcja porównująca ze sobą dwa obiekty"""

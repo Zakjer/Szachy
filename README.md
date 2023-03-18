@@ -8,7 +8,7 @@ pip install pygame
 ```
 
 # Jak grać?
-Aby rozpocząć grę, urochom plik main.py przy użyciu Pythona. Gdy program się uruchomi gracze mogą kliknąć na figurę, którą chcą się poruszyć a następnie kliknąć na kwadrat, na który chcą przenieść tę figurę. Jeżeli ruch jest dozwolony, gra uaktualni planszę, po czym nastąpi kolej na ruch drugiego gracza. Jeżeli ruch jest niedozwolony gracz będzie musiał wybrać inne pole lub figurę. Jeżeli gracze chcą cofnąć wykonany ruch można zrobić to przy użyciu klawisza "backspace".
+Aby rozpocząć grę, urochom plik main.py przy użyciu Pythona. Gdy program się uruchomi gracze mogą kliknąć na figurę, którą chcą się poruszyć a następnie kliknąć na kwadrat, na który chcą przenieść tę figurę. Jeżeli ruch jest dozwolony, gra uaktualni planszę, po czym nastąpi kolej na ruch drugiego gracza. Jeżeli ruch jest niedozwolony gracz będzie musiał wybrać inne pole lub figurę. Jeżeli gracze chcą cofnąć wykonany ruch można zrobić to przy użyciu klawisza "backspace" lub zresetować całkowity stan gry przy użyciu klawisza "r". 
 
 # Pliki
 **Main.py**: Jest to główny plik, który uruchamia program.
