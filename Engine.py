@@ -236,50 +236,21 @@ class StateOfTheGame:
         rzędzie oraz kolumnie i dodająca je do listy
         """
         #Ruchy białych i czarnych wież (nie wliczając bicia)
-        i = 1
-        while row-i >= 0 and self.board[row-i][column] == "--":
-            moves.append(Move((row, column), (row-i, column), self.board))
-            i += 1
-        i = 1
-        while row+i <= 7 and self.board[row+i][column] == "--":
-            moves.append(Move((row, column), (row+i, column), self.board))
-            i += 1
-        i = 1
-        while column-i >= 0 and self.board[row][column-i] == "--":
-            moves.append(Move((row, column), (row, column-i), self.board))
-            i += 1
-        i = 1
-        while column+i <= 7 and self.board[row][column+i] == "--":
-            moves.append(Move((row, column), (row, column+i), self.board))
-            i += 1
-
-        #Bicie dla białych i czarnych wież
+        ROOK_MOVES = [(0,1), (1,0), (-1,0), (0,-1)] #Zmiana współrzędnych po ruchu wieży
         enemy_piece_color = "b" if self.white_to_move else "w" #Sprawdzenie koloru bierek przeciwnika
-        i = 1
-        while row-i >= 0:
-            if self.board[row-i][column][0] == enemy_piece_color:
-                moves.append(Move((row, column), (row-i, column), self.board))
-                break
-            i += 1
-        i = 1
-        while row+i <= 7:
-            if self.board[row+i][column][0] == enemy_piece_color:
-                moves.append(Move((row, column), (row+i, column), self.board))
-                break
-            i += 1
-        i = 1
-        while column-i >= 0:
-            if self.board[row][column-i][0] == enemy_piece_color:
-                moves.append(Move((row, column), (row, column-i), self.board))
-                break
-            i += 1
-        i = 1
-        while column+i <= 7:
-            if self.board[row][column+i][0] == enemy_piece_color:
-                moves.append(Move((row, column), (row, column+i), self.board))
-                break
-            i += 1
-
+        for move in ROOK_MOVES:
+            for i in range(1,8):
+                new_row = row + (move[0] * i)
+                new_column = column + (move[1] * i)
+                if 0 <= new_row <= 7 and 0 <= new_column <= 7:
+                    if self.board[new_row][new_column] == "--":
+                        moves.append(Move((row, column), (new_row, new_column), self.board))
+                    elif self.board[new_row][new_column][0] != enemy_piece_color:
+                        break
+                    elif self.board[new_row][new_column][0] == enemy_piece_color:
+                        moves.append(Move((row, column), (new_row, new_column), self.board))
+                        break
+                
     def get_knight_moves(self, row, column, moves):
         """
         Funkcja zwracająca wszystkie możliwe ruchy dla skoczka znajdującego się w konkretnym
@@ -302,50 +273,21 @@ class StateOfTheGame:
         Funkcja zwracająca wszystkie możliwe ruchy dla gońca znajdującego się w konkretnym
         rzędzie oraz kolumnie i dodająca je do listy
         """
-        #Ruchy białych i czarnych gońców nie wliczając bicia
-        i = 1
-        while row-i >= 0 and column+i <= 7 and self.board[row-i][column+i] == "--":
-            moves.append(Move((row, column), (row-i, column+i), self.board))
-            i += 1
-        i = 1
-        while row+i <= 7 and column-i >= 0 and self.board[row+i][column-i] == "--":
-            moves.append(Move((row, column), (row+i, column-i), self.board))
-            i += 1
-        i = 1
-        while column-i >= 0 and row-i >= 0 and self.board[row-i][column-i] == "--":
-            moves.append(Move((row, column), (row-i, column-i), self.board))
-            i += 1
-        i = 1
-        while column+i <= 7 and row+i <= 7 and self.board[row+i][column+i] == "--":
-            moves.append(Move((row, column), (row+i, column+i), self.board))
-            i += 1
-
-        #Bicie dla czarnych i białych gońców
+        #Ruchy białych i czarnych gońców (nie wliczając bicia)
+        BISHOP_MOVES = [(1,1), (1,-1), (-1,1), (-1,-1)] #Zmiana współrzędnych po ruchu gońca
         enemy_piece_color = "b" if self.white_to_move else "w" #Sprawdzenie koloru bierek przeciwnika
-        i = 1
-        while row-i >= 0 and column+i <= 7:
-            if self.board[row-i][column+i][0] == enemy_piece_color:
-                moves.append(Move((row, column), (row-i, column+i), self.board))
-                break
-            i += 1
-        i = 1
-        while row+i <= 7 and column-i >= 0:
-            if self.board[row+i][column-i][0] == enemy_piece_color:
-                moves.append(Move((row, column), (row+i, column-i), self.board))
-                break
-            i += 1
-        i = 1
-        while column-i >= 0 and row-1 >= 0:
-            if self.board[row-i][column-i][0] == enemy_piece_color:
-                moves.append(Move((row, column), (row-i, column-i), self.board))
-                break
-            i += 1
-        i = 1
-        while column+i <= 7 and row+i <= 7:
-            if self.board[row+i][column+i][0] == enemy_piece_color:
-                moves.append(Move((row, column), (row+i, column+i), self.board))
-                break
-            i += 1
+        for move in BISHOP_MOVES:
+            for i in range(1,8):
+                new_row = row + (move[0] * i)
+                new_column = column + (move[1] * i)
+                if 0 <= new_row <= 7 and 0 <= new_column <= 7:
+                    if self.board[new_row][new_column] == "--":
+                        moves.append(Move((row, column), (new_row, new_column), self.board))
+                    elif self.board[new_row][new_column][0] != enemy_piece_color:
+                        break
+                    elif self.board[new_row][new_column][0] == enemy_piece_color:
+                        moves.append(Move((row, column), (new_row, new_column), self.board))
+                        break
 
     def get_queen_moves(self, row, column, moves):
         """

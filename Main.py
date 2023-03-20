@@ -71,6 +71,7 @@ def main():
                     for i in range(len(valid_moves)):
                         if move == valid_moves[i]: #Sprawdzenie czy ruch jest poprawny
                             gs.make_move(valid_moves[i])
+                            use_sound_effect(move, gs.board)
                             move_made = True 
                             animate = True
                             sq_selected = () #Zresetowanie kliknięcia użytkownika
@@ -112,11 +113,6 @@ def draw_pieces(surface, board):
             if piece != "--":
                 surface.blit(IMAGES[piece], p.Rect(column * SQ_SIZE, row * SQ_SIZE, SQ_SIZE, SQ_SIZE))
 
-def play_sound_effect(effect_name):
-    """Funkcja wywołująca efekt dźwiękowy"""
-    sound_effect = p.mixer.Sound(os.path.join("Sound_effects", f"{effect_name}.mp3" ))
-    p.mixer.Sound.play(sound_effect)
-
 def highlight_squares(surface, gs, valid_moves, sq_selected):
     """Funkcja podświetlająca figurę oraz pola, na które może się poruszyć"""
     if sq_selected != ():
@@ -157,7 +153,22 @@ def animate_move(move, surface, board, clock):
         surface.blit(IMAGES[move.piece_moved], p.Rect(column * SQ_SIZE, row * SQ_SIZE, SQ_SIZE, SQ_SIZE))
         p.display.flip()
         clock.tick(60)
+
+def play_sound_effect(effect_name):
+    """Funkcja wywołująca efekt dźwiękowy"""
+    sound_effect = p.mixer.Sound(os.path.join("Sound_effects", f"{effect_name}.mp3" ))
+    p.mixer.Sound.play(sound_effect)
     
+def use_sound_effect(move ,board):
+    """Funkcja dopasowująca efekt dźwiękowy do ruchu"""
+    state = StateOfTheGame()
+    if state.in_check() == True:
+        play_sound_effect("Check_sound")
+    elif board[move.end_row][move.end_column] == "--":
+        play_sound_effect("Move_sound")
+    elif board[move.end_row][move.end_column] != "--":
+        play_sound_effect("Capture_sound")
+
 if __name__ == "__main__":
     main()
     

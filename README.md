@@ -21,8 +21,6 @@ Aby rozpocząć grę, urochom plik main.py przy użyciu Pythona. Gdy program si�
 
 # Rzeczy do zrobienia
 - dodanie dźwiękow go gry
-- dodanie ruchów "specjalnych" (roszada, bicie w przelocie)
-- dodanie podświetlania na szachownicy możliwych ruchów do wykonania
-- zoptymalizowanie funkcji odpowiedzialnych za ruchy wieży, gońca oraz hetmana
+- obracanie planszy po wykonaniu ruchu
 
 https://github.com/Zakjer/Szachy
