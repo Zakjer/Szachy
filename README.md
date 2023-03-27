@@ -13,14 +13,8 @@ Aby rozpocząć grę, urochom plik main.py przy użyciu Pythona. Gdy program si�
 # Pliki
 **Main.py**: Jest to główny plik, który uruchamia program.
 
-**Engine.py**: Plik ten zawiera logikę programu zaimplementowaną w klasach `StateOfTheGame` oraz `Move`.
+**Engine.py**: Plik ten zawiera logikę programu zaimplementowaną w klasach `StateOfTheGame` `Move` oraz  `CastleRights`.
 
 **Pictures**: Folder ten zawiera zdjęcia wszystkich figur zapisanych w formacie .png.
 
 **Sound_effects**: Folder ten zawiera efekty dźwiękowe, które są słyszane podczas konkretnych sytuacji podczas gry.
-
-# Rzeczy do zrobienia
-- dodanie dźwiękow go gry
-- obracanie planszy po wykonaniu ruchu
-
-https://github.com/Zakjer/Szachy

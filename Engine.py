@@ -20,8 +20,8 @@ class StateOfTheGame:
         self.move_log = []
         self.white_king_location = (7, 4)
         self.black_king_location = (0, 4) 
-        self.check_mate = False
-        self.stale_mate = False 
+        self.checkmate = False
+        self.stalemate = False 
         self.enpassant_possible = () #Współrzędne kwadratu gdzie bicie w przelocie jest dozwolone 
         self.current_castling_right = CastleRights(True, True, True, True)
         self.castle_rights_log = [CastleRights(self.current_castling_right.wks, self.current_castling_right.bks,
@@ -142,12 +142,12 @@ class StateOfTheGame:
             self.undo_move()
         if len(moves) == 0: #Gdy gracz nie może wykonać żadnego ruchu
             if self.in_check():
-                self.check_mate = True #Gdy król jest szachowany następuje mat
+                self.checkmate = True #Gdy król jest szachowany następuje mat
             else:
-                self.stale_mate = True #Gdy król nie jest szachowany następuje pat
+                self.stalemate = True #Gdy król nie jest szachowany następuje pat
         else:
-            self.check_mate = False
-            self.stale_mate = False 
+            self.checkmate = False
+            self.stalemate = False 
 
         self.enpassant_possible = temp_enpassant_possible
         self.current_castling_right = temp_castle_rights
@@ -339,7 +339,7 @@ class StateOfTheGame:
 
 
 class CastleRights():
-    """Klasa odpowiada za sprawdzenie czy roszada jest dozwolonym ruchem"""
+    """Klasa odpowiada za zdefiniowanie wszystkich możliwych 'typów' roszad"""
     def __init__(self, wks, bks, wqs, bqs): #wks = white king site, bqs = black queen site itd.
         self.wks = wks
         self.bks = bks
