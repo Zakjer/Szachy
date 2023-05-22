@@ -23,6 +23,7 @@ def load_images():
 
 def main():
     """Funkcja główna pobiera input od użytkownika oraz na bieżąco aktualizuje wygląd szachownicy"""
+    chosen_color = input('Pick board color (recommended color is gray): ')
     surface = p.display.set_mode((WIDTH, HEIGHT))
     clock = p.time.Clock()
     p.display.set_caption("Chess")
@@ -45,6 +46,8 @@ def main():
             if e.type == p.QUIT:
                 running = False
             keys = p.key.get_pressed()
+            if keys[p.K_ESCAPE]:
+                running = False
             if keys[p.K_BACKSPACE]: #Cofnięcie ruchu po kliknięciu backspace
                 gs.undo_move() 
                 move_made = True
@@ -93,12 +96,12 @@ def main():
 
         if move_made:
             if animate:
-                animate_move(gs.move_log[-1], surface, gs.board, clock)
+                animate_move(gs.move_log[-1], surface, gs.board, clock, chosen_color)
             valid_moves = gs.get_valid_moves()
             move_made = False
             animate = False 
 
-        draw_game_state(surface, gs, valid_moves, sq_selected)
+        draw_game_state(surface, gs, valid_moves, sq_selected, chosen_color)
         #Rysowanie komunikatów po zakończeniu gry
         if gs.checkmate:
             gameover = True
@@ -113,16 +116,16 @@ def main():
         clock.tick(FPS)
         p.display.flip()
 
-def draw_game_state(surface, gs, valid_moves, sq_selected):
+def draw_game_state(surface, gs, valid_moves, sq_selected, chosen_color):
     """Funkcja odpowiedzialna za wyświetlenie obecnego stanu gry"""
-    draw_board(surface)
+    draw_board(surface, chosen_color)
     highlight_squares(surface, gs, valid_moves, sq_selected)
     draw_pieces(surface, gs.board)
 
-def draw_board(surface):
+def draw_board(surface, chosen_color):
     """Funkcja rysująca szachownicę"""
     global colors
-    colors = [p.Color("white"), p.Color("gray")]
+    colors = [p.Color("white"), p.Color(chosen_color)]
     for row in range(DIMENSION):
         for column in range(DIMENSION):
             color = colors[((row+column) % 2)] #Rysowanie białych oraz szarych kwadratów
@@ -153,7 +156,7 @@ def highlight_squares(surface, gs, valid_moves, sq_selected):
                 if move.start_row == row and move.start_column == column:
                     surface.blit(s, (move.end_column * SQ_SIZE, move.end_row * SQ_SIZE))
 
-def animate_move(move, surface, board, clock):
+def animate_move(move, surface, board, clock, chosen_color):
     """Funkcja animująca ruch figury"""
     global colors 
     dR = move.end_row - move.start_row
@@ -163,7 +166,7 @@ def animate_move(move, surface, board, clock):
     for frame in range(frame_count + 1):
         row = move.start_row + dR*frame/frame_count
         column = move.start_column + dC*frame/frame_count
-        draw_board(surface)
+        draw_board(surface, chosen_color)
         draw_pieces(surface, board)
         #Usunięcie figury z położenia końcowego
         color = colors[(move.end_row + move.end_column) % 2]
@@ -193,5 +196,9 @@ def draw_text(surface, text):
     surface.blit(text_object, text_location.move(2, 2))
     
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except ValueError:
+        print('Chosen color is wrong')
+
     
